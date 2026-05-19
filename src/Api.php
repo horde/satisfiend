@@ -15,6 +15,4 @@ namespace Horde\Satisfiend;
 
 use Horde_Registry_Api;
 
-class Api extends Horde_Registry_Api
-{
-}
+class Api extends Horde_Registry_Api {}
