@@ -19,47 +19,36 @@ if (PHP_SAPI !== 'cli') {
     exit(1);
 }
 
-require_once __DIR__ . '/../src/Application.php';
-Horde_Registry::appInit('satisfiend', ['authentication' => 'none']);
+// Composer proxies bin scripts through a small wrapper that sets
+// $GLOBALS['_composer_autoload_path'] to the correct autoloader for
+// the installation. When present (i.e. when the CLI was invoked
+// through vendor/bin/satisfiend-cli or the composer-generated proxy),
+// prefer it - it always points at the running install's autoloader,
+// even when this script lives elsewhere on disk via a symlink.
+//
+// Fallbacks handle the two other shapes:
+//   - satisfiend as a dependency of a running horde install, invoked
+//     directly via vendor/horde/satisfiend/bin/satisfiend-cli
+//     (autoload lives four levels up);
+//   - a standalone clone with a local vendor dir (dev use only,
+//     autoload lives two levels up).
+$autoloadCandidates = [];
+if (isset($GLOBALS['_composer_autoload_path']) && is_string($GLOBALS['_composer_autoload_path'])) {
+    $autoloadCandidates[] = $GLOBALS['_composer_autoload_path'];
+}
+$autoloadCandidates[] = __DIR__ . '/../../../autoload.php';
+$autoloadCandidates[] = __DIR__ . '/../vendor/autoload.php';
 
-use Horde\Db\Adapter;
-use Horde\Http\Client\Curl as CurlClient;
-use Horde\Http\Client\Options as HttpOptions;
-use Horde\Http\RequestFactory;
-use Horde\Http\ResponseFactory;
-use Horde\Http\StreamFactory;
-use Horde\Satisfiend\Cli;
-use Psr\EventDispatcher\EventDispatcherInterface;
-use Psr\Http\Client\ClientInterface;
-use Psr\Http\Message\RequestFactoryInterface;
-use Psr\Http\Message\StreamFactoryInterface;
-
-$injector = $GLOBALS['injector'];
-
-// The HTTP client bindings aren't guaranteed to exist in every Horde
-// registry, so wire a minimal Curl-backed stack here specifically for
-// the `debug send` path. This is the CLI's own composition root, not
-// something we want in the app _bootstrap() where it would ship with
-// every web request too.
-if (!$injector->has(ClientInterface::class)) {
-    $streamFactory = new StreamFactory();
-    $responseFactory = new ResponseFactory();
-    $injector->setInstance(
-        ClientInterface::class,
-        new CurlClient($responseFactory, $streamFactory, new HttpOptions())
-    );
-    $injector->setInstance(RequestFactoryInterface::class, new RequestFactory());
-    $injector->setInstance(StreamFactoryInterface::class, $streamFactory);
+foreach ($autoloadCandidates as $autoloadPath) {
+    if (is_file($autoloadPath)) {
+        require_once $autoloadPath;
+        break;
+    }
 }
 
-$cli = new Cli(
-    stdout: STDOUT,
-    stderr: STDERR,
-    dispatcher: $injector->getInstance(EventDispatcherInterface::class),
-    db: $injector->getInstance(Adapter::class),
-    httpClient: $injector->getInstance(ClientInterface::class),
-    requestFactory: $injector->getInstance(RequestFactoryInterface::class),
-    streamFactory: $injector->getInstance(StreamFactoryInterface::class),
-);
+if (!class_exists(\Horde\Satisfiend\Cli\BootstrapCli::class)) {
+    fwrite(STDERR, "satisfiend-cli: could not locate composer autoloader\n");
+    exit(2);
+}
 
-exit($cli->run($argv));
+exit(\Horde\Satisfiend\Cli\BootstrapCli::build()->run($argv));

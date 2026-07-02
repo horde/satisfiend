@@ -19,6 +19,7 @@ use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 use Throwable;
+use InvalidArgumentException;
 
 /**
  * Command dispatcher for `bin/satisfiend-cli`.
@@ -194,7 +195,7 @@ class Cli
         for ($i = 0; $i < $count; $i++) {
             $arg = $args[$i];
             if (!str_starts_with($arg, '--')) {
-                throw new \InvalidArgumentException(sprintf('Unexpected positional argument: %s', $arg));
+                throw new InvalidArgumentException(sprintf('Unexpected positional argument: %s', $arg));
             }
             $arg = substr($arg, 2);
             if (str_contains($arg, '=')) {
@@ -205,7 +206,7 @@ class Cli
             // Boolean flags aren't used yet; every long option currently takes
             // a value. Consume the next token.
             if ($i + 1 >= $count) {
-                throw new \InvalidArgumentException(sprintf('Option --%s requires a value', $arg));
+                throw new InvalidArgumentException(sprintf('Option --%s requires a value', $arg));
             }
             $out[$arg] = $args[++$i];
         }
@@ -222,7 +223,7 @@ class Cli
     {
         return array_values(array_filter(
             $required,
-            static fn (string $k): bool => !array_key_exists($k, $opts) || $opts[$k] === '',
+            static fn(string $k): bool => !array_key_exists($k, $opts) || $opts[$k] === '',
         ));
     }
 
@@ -249,34 +250,34 @@ class Cli
     private function printUsage(): void
     {
         $this->out(<<<'TXT'
-Usage: satisfiend-cli <command> [<subcommand>] [options]
+            Usage: satisfiend-cli <command> [<subcommand>] [options]
 
-Commands:
-  debug inject  Synthesise a WebhookReceivedEvent in-process from a
-                fixture file and dispatch it to the shared event
-                dispatcher. Bypasses HTTP and HMAC verification.
-                Rows land in satisfiend_events with debug=true.
+            Commands:
+              debug inject  Synthesise a WebhookReceivedEvent in-process from a
+                            fixture file and dispatch it to the shared event
+                            dispatcher. Bypasses HTTP and HMAC verification.
+                            Rows land in satisfiend_events with debug=true.
 
-  debug send    Compute an HMAC signature over a fixture file and POST
-                it to a Satisfiend webhook endpoint. Exercises the full
-                receive path just as github.com would. Rows land with
-                debug=false.
+              debug send    Compute an HMAC signature over a fixture file and POST
+                            it to a Satisfiend webhook endpoint. Exercises the full
+                            receive path just as github.com would. Rows land with
+                            debug=false.
 
-  help          This help text.
+              help          This help text.
 
-Common options (both `inject` and `send`):
-  --slug=SLUG          Endpoint slug (required)
-  --event-type=TYPE    e.g. push, pull_request, issues (required)
-  --fixture=PATH       Path to a JSON payload file (required)
-  --provider=PROVIDER  Provider identifier (inject only; default: github)
-  --action=ACTION      Override the fixture's `action` field
-  --delivery-id=ID     Override the delivery id
+            Common options (both `inject` and `send`):
+              --slug=SLUG          Endpoint slug (required)
+              --event-type=TYPE    e.g. push, pull_request, issues (required)
+              --fixture=PATH       Path to a JSON payload file (required)
+              --provider=PROVIDER  Provider identifier (inject only; default: github)
+              --action=ACTION      Override the fixture's `action` field
+              --delivery-id=ID     Override the delivery id
 
-`debug send` only:
-  --url=URL            Override the endpoint URL
-                       (default: http://localhost/satisfiend/webhook/SLUG)
-  --secret=SECRET      Override the endpoint's HMAC secret
-                       (default: read from satisfiend_endpoints)
-TXT);
+            `debug send` only:
+              --url=URL            Override the endpoint URL
+                                   (default: http://localhost/satisfiend/webhook/SLUG)
+              --secret=SECRET      Override the endpoint's HMAC secret
+                                   (default: read from satisfiend_endpoints)
+            TXT);
     }
 }

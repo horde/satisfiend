@@ -92,16 +92,36 @@ final readonly class EventFilter
     public function toQueryParams(): array
     {
         $out = [];
-        if ($this->slug !== null) { $out['slug'] = $this->slug; }
-        if ($this->eventType !== null) { $out['event_type'] = $this->eventType; }
-        if ($this->action !== null) { $out['action'] = $this->action; }
-        if ($this->repository !== null) { $out['repository'] = $this->repository; }
-        if ($this->actor !== null) { $out['actor'] = $this->actor; }
-        if ($this->status !== null) { $out['status'] = $this->status; }
-        if ($this->debug !== null) { $out['debug'] = $this->debug ? '1' : '0'; }
-        if ($this->since !== null) { $out['since'] = $this->since; }
-        if ($this->until !== null) { $out['until'] = $this->until; }
-        if ($this->q !== null) { $out['q'] = $this->q; }
+        if ($this->slug !== null) {
+            $out['slug'] = $this->slug;
+        }
+        if ($this->eventType !== null) {
+            $out['event_type'] = $this->eventType;
+        }
+        if ($this->action !== null) {
+            $out['action'] = $this->action;
+        }
+        if ($this->repository !== null) {
+            $out['repository'] = $this->repository;
+        }
+        if ($this->actor !== null) {
+            $out['actor'] = $this->actor;
+        }
+        if ($this->status !== null) {
+            $out['status'] = $this->status;
+        }
+        if ($this->debug !== null) {
+            $out['debug'] = $this->debug ? '1' : '0';
+        }
+        if ($this->since !== null) {
+            $out['since'] = $this->since;
+        }
+        if ($this->until !== null) {
+            $out['until'] = $this->until;
+        }
+        if ($this->q !== null) {
+            $out['q'] = $this->q;
+        }
 
         return $out;
     }
