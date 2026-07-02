@@ -13,11 +13,7 @@ declare(strict_types=1);
 
 namespace Horde\Satisfiend;
 
-use Horde\EventDispatcher\SimpleListenerProvider;
-use Horde\Satisfiend\Factory\EndpointLookupFactory;
-use Horde\Satisfiend\Listener\PersistEventListener;
 use Horde_Registry_Application;
-use Psr\EventDispatcher\ListenerProviderInterface;
 
 if (!defined('SATISFIEND_BASE')) {
     define('SATISFIEND_BASE', realpath(__DIR__ . '/..'));
@@ -33,35 +29,29 @@ if (!defined('HORDE_BASE')) {
 
 require_once HORDE_BASE . '/lib/core.php';
 
+/**
+ * Legacy `type: horde-application` shell class.
+ *
+ * Retained so `Horde_Registry` can discover satisfiend as a registered
+ * app (registry snippets reference this class), but satisfiend's
+ * runtime wiring lives entirely in
+ * {@see Bootstrap::wire()}. The web path invokes it
+ * through {@see Middleware\SatisfiendBootstrap}; the
+ * CLI script invokes it through
+ * {@see Cli\BootstrapCli}. Neither calls
+ * `Horde_Registry::appInit`, so `_bootstrap()` is intentionally a
+ * no-op here.
+ *
+ * If a legacy `appInit`-based caller ever needs satisfiend wiring, it
+ * can call `Bootstrap::wire($injector)` directly from its own path
+ * without reviving stateful code in this method.
+ */
 class Application extends Horde_Registry_Application
 {
     public $version = '1.0.0-alpha1';
 
     protected function _bootstrap(): void
     {
-        $injector = $GLOBALS['injector'];
-
-        // Only interface -> concrete bindings need explicit factories.
-        // Every other satisfiend service (WebhookHandler,
-        // WebhookVerifierFactory, PersistEventListener, ...) has a
-        // concrete constructor with typed parameters the injector
-        // auto-resolves.
-        $injector->bindFactory(
-            EndpointLookupInterface::class,
-            EndpointLookupFactory::class,
-            'create',
-        );
-
-        // Register the PersistEventListener against the shared PSR-14
-        // listener provider so every WebhookReceivedEvent is durably
-        // stored regardless of which other consumers are listening.
-        if ($injector->has(ListenerProviderInterface::class)) {
-            $provider = $injector->getInstance(ListenerProviderInterface::class);
-            if ($provider instanceof SimpleListenerProvider) {
-                $provider->addListener(
-                    $injector->getInstance(PersistEventListener::class),
-                );
-            }
-        }
+        // Deliberately empty. See class docblock.
     }
 }

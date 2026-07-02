@@ -18,11 +18,11 @@ use Horde\Db\Adapter;
 /**
  * Query layer over `satisfiend_events`. Shared by:
  *
- *   - {@see \Horde\Satisfiend\Controller\EventListController} - HTML
+ *   - {@see Controller\EventListController} - HTML
  *     table + filter form.
- *   - {@see \Horde\Satisfiend\Controller\EventDetailController} - HTML
+ *   - {@see Controller\EventDetailController} - HTML
  *     detail view with rendered payload.
- *   - {@see \Horde\Satisfiend\Controller\Api\EventListController}
+ *   - {@see Controller\Api\EventListController}
  *     and siblings - JSON API (ticket 3).
  *
  * All filter fields are optional. Callers pass an
@@ -31,7 +31,7 @@ use Horde\Db\Adapter;
  * node_id (LIKE-based).
  *
  * Every method is read-only. Writes happen through
- * {@see \Horde\Satisfiend\Listener\PersistEventListener} on the event
+ * {@see Listener\PersistEventListener} on the event
  * dispatch path.
  */
 class EventRepository

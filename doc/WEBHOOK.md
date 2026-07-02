@@ -3,7 +3,17 @@
 Satisfiend dispatches a PSR-14 `WebhookReceivedEvent` for every verified
 incoming webhook. Any Horde application can listen for these events.
 
-## Register a listener
+There are two ways to subscribe a listener:
+
+1. **From another Horde application** - the listener class lives in an
+   app package and registers itself in that app's `_bootstrap()`. See
+   "Register from another Horde app" below.
+2. **From an installation-local class** - the listener class lives in
+   the running install, not in any versioned package, and satisfiend
+   picks it up from its config. See "Register from installation-local
+   config" below.
+
+## Register from another Horde app
 
 Add a listener to the shared `SimpleListenerProvider` in your application's `_bootstrap()` method.
 Guard the registration so your app works even when satisfiend is not installed:
@@ -31,6 +41,94 @@ protected function _bootstrap(): void
     }
 }
 ```
+
+## Register from installation-local config
+
+When you need to react to webhook events but the reaction is specific to
+one installation - a spencer-only rebuild trigger, a Slack post to your
+team's channel, a rebuild of your private wiki - a full Horde app is
+overkill. Satisfiend reads a list of installation-local listener classes
+from its own config and subscribes each one to the shared dispatcher at
+bootstrap.
+
+### 1. Write the listener class
+
+Put the class anywhere on disk in your running install. A common choice
+is a `local/` directory next to `vendor/`:
+
+```php
+// /path/to/running/horde/local/src/MyOps/DevSiteRebuildListener.php
+namespace MyOps;
+
+use Horde\Satisfiend\Event\WebhookReceivedEvent;
+use Psr\Log\LoggerInterface;
+
+class DevSiteRebuildListener
+{
+    public function __construct(
+        private readonly LoggerInterface $log,
+    ) {}
+
+    public function __invoke(WebhookReceivedEvent $event): void
+    {
+        if ($event->debug || $event->eventType !== 'push') {
+            return;
+        }
+        // Kick the SSG - the local admin's business.
+        // ...
+    }
+}
+```
+
+### 2. Teach composer to autoload it
+
+Add a PSR-4 mapping to the **root bundle**'s `composer.json` (the one
+that owns your running install, not to any `vendor/` package):
+
+```json
+{
+    "autoload": {
+        "psr-4": {
+            "MyOps\\": "local/src/MyOps/"
+        }
+    }
+}
+```
+
+Then run `composer dump-autoload` so the class becomes discoverable.
+
+### 3. Name the class in satisfiend's config
+
+Edit `var/config/satisfiend/conf.php` (create it if missing; the schema
+lives in `config/conf.xml` and is distributed by
+horde-installer-plugin):
+
+```php
+$conf['listeners']['classes'] = [
+    'MyOps\\DevSiteRebuildListener',
+];
+```
+
+That's it. On the next HTTP request or CLI invocation, satisfiend's
+`ListenerLoader` reads the config, resolves each class through the
+injector (so listeners can declare typed constructor dependencies -
+`Horde\Db\Adapter`, `LoggerInterface`, anything bound in the
+container), verifies the resulting object is callable, and subscribes
+it to the shared listener provider.
+
+### Failure handling
+
+A misconfigured entry is logged and skipped; satisfiend keeps running.
+Look for `satisfiend:` warnings in the horde log to diagnose:
+
+- **"not autoloadable"** - the PSR-4 mapping is missing or
+  `composer dump-autoload` has not been run.
+- **"could not construct"** - the class exists but its constructor
+  threw or asked for a service the injector cannot provide.
+- **"is not callable"** - the class exists and constructs cleanly, but
+  it does not define `__invoke` (or any other callable interface).
+- **"non-string entry"** - `$conf['listeners']['classes']` contained
+  a value that is not a class name string.
 
 ## Write a listener
 

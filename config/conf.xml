@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<configuration>
+ <configsection name="listeners">
+  <configheader>Installation-local listener classes</configheader>
+  <configdescription>Each entry is the fully-qualified name of a class
+  that Satisfiend should register against the horde-wide PSR-14
+  listener provider at bootstrap. Every entry must:
+
+  - be autoloadable (add a PSR-4 mapping to the root bundle's
+  composer.json, then run composer dump-autoload);
+  - be constructible via the Horde injector (constructor arguments,
+  if any, are resolved from the container - Horde\Db\Adapter,
+  Psr\Log\LoggerInterface, and other bound services are all
+  available);
+  - be callable, typically by defining
+  __invoke(\Horde\Satisfiend\Event\WebhookReceivedEvent $event): void.
+
+  Satisfiend's own PersistEventListener is always registered separately;
+  entries here are strictly additive. A misconfigured class is logged
+  and skipped; it does not take the webhook receiver down.
+
+  See doc/WEBHOOK.md for a complete example.</configdescription>
+  <configlist name="classes" required="false" desc="Fully-qualified class names of installation-local listeners"/>
+ </configsection>
+</configuration>

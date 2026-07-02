@@ -41,14 +41,19 @@
         "phpstan/phpstan": "^2"
     },
     "suggest": {},
+    "bin": [
+        "bin/satisfiend-cli"
+    ],
     "autoload": {
         "psr-4": {
-            "Horde\\Satisfiend\\": "/src"
+            "Horde\\Satisfiend\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Horde\\Satisfiend\\Test\\": "test/"
+            "Horde\\Satisfiend\\Test\\": "test/",
+            "Horde\\Satisfiend\\Test\\Unit\\": "test/unit/",
+            "Horde\\Satisfiend\\Test\\Integration\\": "test/integration/"
         }
     },
     "config": {
@@ -60,5 +65,6 @@
         "branch-alias": {
             "dev-FRAMEWORK_6_0": "1.x-dev"
         }
-    }
+    },
+    "minimum-stability": "dev"
 }

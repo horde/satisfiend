@@ -47,10 +47,10 @@ dependencies:
       friendsofphp/php-cs-fixer: ^3
       phpstan/phpstan: ^2
   psr-4:
-    Horde\Satisfiend\: /src
+    Horde\Satisfiend\: src/
 autoload:
   psr-4:
-    Horde\Satisfiend\: /src
+    Horde\Satisfiend\: src/
 keywords:
   - github
   - webhooks

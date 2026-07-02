@@ -18,7 +18,7 @@ namespace Horde\Satisfiend;
  * payload. Shared by {@see WebhookHandler} (real HTTP deliveries) and
  * {@see DebugInjectionService} (in-process synthesised events) so that
  * both origins produce structurally identical
- * {@see \Horde\Satisfiend\Event\WebhookReceivedEvent} instances.
+ * {@see Event\WebhookReceivedEvent} instances.
  */
 final class PayloadExtractor
 {
