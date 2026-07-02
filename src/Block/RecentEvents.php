@@ -14,8 +14,9 @@ declare(strict_types=1);
 namespace Horde\Satisfiend\Block;
 
 use Horde;
+use Horde\Core\Uri\RoutesProvider;
+use Horde\Db\Adapter;
 use Horde_Core_Block;
-use Horde_Db_Adapter;
 
 class RecentEvents extends Horde_Core_Block
 {
@@ -76,7 +77,9 @@ class RecentEvents extends Horde_Core_Block
 
     protected function _content(): string
     {
-        $db = $GLOBALS['injector']->getInstance(Horde_Db_Adapter::class);
+        $injector = $GLOBALS['injector'];
+        $db = $injector->getInstance(Adapter::class);
+        $routes = $injector->getInstance(RoutesProvider::class);
         $limit = max(1, min(50, (int) ($this->_params['limit'] ?? 10)));
 
         $where = [];
@@ -92,7 +95,7 @@ class RecentEvents extends Horde_Core_Block
             $bind[] = $this->_params['provider_type'];
         }
 
-        $sql = 'SELECT e.event_type, e.action, e.repository, e.actor, e.received_at'
+        $sql = 'SELECT e.delivery_id, e.event_type, e.action, e.repository, e.actor, e.received_at, e.debug'
             . ' FROM satisfiend_events e'
             . ' JOIN satisfiend_endpoints ep ON e.slug = ep.slug';
 
@@ -121,9 +124,26 @@ class RecentEvents extends Horde_Core_Block
             if (!empty($row['action'])) {
                 $type .= '/' . htmlspecialchars($row['action']);
             }
+            if (!empty($row['debug'])) {
+                $type .= ' <span style="background:#fff3cd;padding:1px 4px;border-radius:3px;font-size:0.8em">'
+                    . _("debug") . '</span>';
+            }
+
+            $deliveryId = (string) ($row['delivery_id'] ?? '');
+            if ($deliveryId !== '') {
+                $detailUrl = $routes->generateNamedPath(
+                    'SatisfiendEventDetail',
+                    ['delivery_id' => $deliveryId]
+                ) ?? ('/satisfiend/events/' . rawurlencode($deliveryId));
+                $typeCell = '<a href="' . htmlspecialchars($detailUrl) . '">' . $type . '</a>';
+            } else {
+                // Delivery-id-less rows are unaddressable; render as
+                // plain text rather than dangling links.
+                $typeCell = $type;
+            }
 
             $html .= '<tr>'
-                . '<td>' . $type . '</td>'
+                . '<td>' . $typeCell . '</td>'
                 . '<td>' . htmlspecialchars($row['repository'] ?? '') . '</td>'
                 . '<td>' . htmlspecialchars($row['actor'] ?? '') . '</td>'
                 . '<td>' . htmlspecialchars($row['received_at']) . '</td>'

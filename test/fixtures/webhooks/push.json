@@ -1,0 +1,34 @@
+{
+  "ref": "refs/heads/main",
+  "before": "0000000000000000000000000000000000000000",
+  "after": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "repository": {
+    "id": 1,
+    "node_id": "R_kgDOAAAAAA",
+    "name": "example",
+    "full_name": "horde/example",
+    "private": false
+  },
+  "pusher": {
+    "name": "octocat",
+    "email": "octocat@example.com"
+  },
+  "sender": {
+    "login": "octocat",
+    "id": 1,
+    "node_id": "MDQ6VXNlcjE=",
+    "type": "User"
+  },
+  "commits": [
+    {
+      "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "message": "Example commit message",
+      "author": {"name": "octocat", "email": "octocat@example.com"},
+      "url": "https://github.com/horde/example/commit/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    }
+  ],
+  "head_commit": {
+    "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "message": "Example commit message"
+  }
+}

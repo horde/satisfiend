@@ -1,0 +1,28 @@
+{
+  "action": "opened",
+  "number": 42,
+  "pull_request": {
+    "id": 1000,
+    "node_id": "PR_kwDOAAAAAA",
+    "number": 42,
+    "state": "open",
+    "title": "Add example feature",
+    "user": {"login": "octocat", "id": 1, "node_id": "MDQ6VXNlcjE="},
+    "body": "Example pull request body",
+    "head": {"ref": "feat/example", "sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
+    "base": {"ref": "main", "sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}
+  },
+  "repository": {
+    "id": 1,
+    "node_id": "R_kgDOAAAAAA",
+    "name": "example",
+    "full_name": "horde/example",
+    "private": false
+  },
+  "sender": {
+    "login": "octocat",
+    "id": 1,
+    "node_id": "MDQ6VXNlcjE=",
+    "type": "User"
+  }
+}

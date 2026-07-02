@@ -11,9 +11,12 @@ declare(strict_types=1);
  * @license http://www.horde.org/licenses/lgpl21 LGPL
  */
 
-namespace Horde\Satisfiend;
+namespace Horde\Satisfiend\Controller;
 
+use Horde\Satisfiend\EndpointLookupInterface;
 use Horde\Satisfiend\Event\WebhookReceivedEvent;
+use Horde\Satisfiend\PayloadExtractor;
+use Horde\Satisfiend\WebhookVerifierFactory;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -31,7 +34,11 @@ class WebhookHandler implements RequestHandlerInterface
 
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
-        $slug = $request->getAttribute('slug', '');
+        // Route params from RampageBootstrap live under the `route`
+        // attribute (the raw $matchDict), not as top-level request
+        // attributes. Read the slug from there.
+        $routeParams = $request->getAttribute('route', []);
+        $slug = is_array($routeParams) ? (string) ($routeParams['slug'] ?? '') : '';
         if ($slug === '') {
             return $this->responseFactory->createResponse(404);
         }
@@ -57,24 +64,13 @@ class WebhookHandler implements RequestHandlerInterface
             providerType: $endpoint->providerType,
             eventType: $request->getHeaderLine('X-GitHub-Event'),
             action: $payload->action ?? '',
-            repository: $payload->repository->full_name ?? '',
-            actor: $payload->sender->login ?? '',
-            nodeId: $this->extractNodeId($payload),
+            repository: PayloadExtractor::repository($payload),
+            actor: PayloadExtractor::actor($payload),
+            nodeId: PayloadExtractor::nodeId($payload),
             deliveryId: $request->getHeaderLine('X-GitHub-Delivery'),
             payload: $body,
         ));
 
         return $this->responseFactory->createResponse(202);
-    }
-
-    private function extractNodeId(object $payload): string
-    {
-        foreach (['pull_request', 'issue', 'comment', 'review', 'release'] as $key) {
-            if (isset($payload->$key->node_id)) {
-                return $payload->$key->node_id;
-            }
-        }
-
-        return '';
     }
 }
