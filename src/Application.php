@@ -14,12 +14,10 @@ declare(strict_types=1);
 namespace Horde\Satisfiend;
 
 use Horde\EventDispatcher\SimpleListenerProvider;
+use Horde\Satisfiend\Factory\EndpointLookupFactory;
 use Horde\Satisfiend\Listener\PersistEventListener;
-use Horde_Db_Adapter;
 use Horde_Registry_Application;
-use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\EventDispatcher\ListenerProviderInterface;
-use Psr\Http\Message\ResponseFactoryInterface;
 
 if (!defined('SATISFIEND_BASE')) {
     define('SATISFIEND_BASE', realpath(__DIR__ . '/..'));
@@ -43,43 +41,20 @@ class Application extends Horde_Registry_Application
     {
         $injector = $GLOBALS['injector'];
 
-        $injector->bindClosure(
+        // Only interface -> concrete bindings need explicit factories.
+        // Every other satisfiend service (WebhookHandler,
+        // WebhookVerifierFactory, PersistEventListener, ...) has a
+        // concrete constructor with typed parameters the injector
+        // auto-resolves.
+        $injector->bindFactory(
             EndpointLookupInterface::class,
-            function ($injector) {
-                return new DbEndpointLookup(
-                    $injector->getInstance(Horde_Db_Adapter::class),
-                );
-            },
+            EndpointLookupFactory::class,
+            'create',
         );
 
-        $injector->bindClosure(
-            WebhookVerifierFactory::class,
-            function () {
-                return new WebhookVerifierFactory();
-            },
-        );
-
-        $injector->bindClosure(
-            PersistEventListener::class,
-            function ($injector) {
-                return new PersistEventListener(
-                    $injector->getInstance(Horde_Db_Adapter::class),
-                );
-            },
-        );
-
-        $injector->bindClosure(
-            WebhookHandler::class,
-            function ($injector) {
-                return new WebhookHandler(
-                    $injector->getInstance(EndpointLookupInterface::class),
-                    $injector->getInstance(WebhookVerifierFactory::class),
-                    $injector->getInstance(EventDispatcherInterface::class),
-                    $injector->getInstance(ResponseFactoryInterface::class),
-                );
-            },
-        );
-
+        // Register the PersistEventListener against the shared PSR-14
+        // listener provider so every WebhookReceivedEvent is durably
+        // stored regardless of which other consumers are listening.
         if ($injector->has(ListenerProviderInterface::class)) {
             $provider = $injector->getInstance(ListenerProviderInterface::class);
             if ($provider instanceof SimpleListenerProvider) {

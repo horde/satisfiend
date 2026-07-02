@@ -1,0 +1,1 @@
+/home/i567442/php/running/horde/var/config/satisfiend/horde.local.php

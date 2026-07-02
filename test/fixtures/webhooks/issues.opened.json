@@ -1,0 +1,25 @@
+{
+  "action": "opened",
+  "issue": {
+    "id": 500,
+    "node_id": "I_kwDOAAAAAA",
+    "number": 7,
+    "state": "open",
+    "title": "Example issue title",
+    "user": {"login": "octocat", "id": 1, "node_id": "MDQ6VXNlcjE="},
+    "body": "Example issue body"
+  },
+  "repository": {
+    "id": 1,
+    "node_id": "R_kgDOAAAAAA",
+    "name": "example",
+    "full_name": "horde/example",
+    "private": false
+  },
+  "sender": {
+    "login": "octocat",
+    "id": 1,
+    "node_id": "MDQ6VXNlcjE=",
+    "type": "User"
+  }
+}

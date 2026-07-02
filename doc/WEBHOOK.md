@@ -80,6 +80,7 @@ class MyWebhookListener
 | `nodeId`       | `string` | Globally unique entity ID for idempotency          |
 | `deliveryId`   | `string` | Webhook delivery UUID for replay deduplication     |
 | `payload`      | `string` | Raw JSON body                                      |
+| `debug`        | `bool`   | `true` only for events synthesised in-process by `bin/satisfiend-cli debug inject`. Real HTTP deliveries - including `bin/satisfiend-cli debug send` - are always `false`. Listeners that must never react to synthetic events should filter on this flag first. |
 
 ## Dependencies
 
@@ -93,14 +94,14 @@ Satisfiend should be a `suggest`, not a `require`, so your app works without it:
 
 The `class_exists()` guard in `_bootstrap()` handles the case where satisfiend
 is not installed. The listener class itself can safely import the event class
-via `use` — PHP only resolves those when the class is actually loaded, and the
+via `use` - PHP only resolves those when the class is actually loaded, and the
 guard prevents that from happening when satisfiend is absent.
 
 ## Execution order
 
 Satisfiend's own `PersistEventListener` runs on the same dispatcher and stores
 every event to the `satisfiend_events` table. Your listener runs alongside it.
-Listener order depends on registration order in `SimpleListenerProvider` — apps
+Listener order depends on registration order in `SimpleListenerProvider` - apps
 that bootstrap earlier register earlier. Do not rely on ordering between apps.
 
 If your listener throws an exception, it propagates immediately and subsequent

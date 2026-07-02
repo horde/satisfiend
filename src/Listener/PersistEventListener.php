@@ -13,13 +13,13 @@ declare(strict_types=1);
 
 namespace Horde\Satisfiend\Listener;
 
+use Horde\Db\Adapter;
 use Horde\Satisfiend\Event\WebhookReceivedEvent;
-use Horde_Db_Adapter;
 
 class PersistEventListener
 {
     public function __construct(
-        private readonly Horde_Db_Adapter $db,
+        private readonly Adapter $db,
     ) {}
 
     public function __invoke(WebhookReceivedEvent $event): void
@@ -37,8 +37,9 @@ class PersistEventListener
         $this->db->insert(
             'INSERT INTO satisfiend_events'
                 . ' (slug, node_id, delivery_id, event_type, action,'
-                . ' repository, actor, payload, status, retry_count, received_at)'
-                . ' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                . ' repository, actor, payload, status, retry_count,'
+                . ' received_at, debug)'
+                . ' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
             [
                 $event->slug,
                 $event->nodeId !== '' ? $event->nodeId : null,
@@ -51,6 +52,7 @@ class PersistEventListener
                 'pending',
                 0,
                 date('Y-m-d H:i:s'),
+                $event->debug ? 1 : 0,
             ]
         );
     }

@@ -13,12 +13,12 @@ declare(strict_types=1);
 
 namespace Horde\Satisfiend;
 
-use Horde_Db_Adapter;
+use Horde\Db\Adapter;
 
 class DbEndpointLookup implements EndpointLookupInterface
 {
     public function __construct(
-        private readonly Horde_Db_Adapter $db,
+        private readonly Adapter $db,
     ) {}
 
     public function findBySlug(string $slug): ?Endpoint

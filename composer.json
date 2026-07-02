@@ -26,10 +26,12 @@
         "horde/eventdispatcher": "^1 || dev-FRAMEWORK_6_0",
         "horde/exception": "^3 || dev-FRAMEWORK_6_0",
         "horde/githubapiclient": "* || dev-FRAMEWORK_6_0",
+        "horde/http": "^3 || dev-FRAMEWORK_6_0",
         "horde/injector": "^3 || dev-FRAMEWORK_6_0",
         "horde/rdo": "^3 || dev-FRAMEWORK_6_0",
         "horde/util": "^3 || dev-FRAMEWORK_6_0",
         "psr/event-dispatcher": "^1.0",
+        "psr/http-client": "^1.0",
         "psr/http-message": "^2.0",
         "psr/http-server-handler": "^1.0",
         "ext-json": "*"
