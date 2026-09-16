@@ -32,7 +32,7 @@ $mapper->buildRoute(uri: '/events/:delivery_id', name: 'SatisfiendEventDetail')
     ->withMiddleware(DefaultStack::get())
     ->add();
 
-// JSON API. Same auth as the HTML surface (session cookie); token
+// JSON API. Same auth as the HTML surface (session cookie). Token
 // auth is a later plan. Routes deliberately keep the same
 // delivery-id shape as the HTML views so consumers can navigate
 // between representations by string-swapping the path prefix.
@@ -56,7 +56,7 @@ $mapper->buildRoute(uri: '/api/events/:delivery_id/payload', name: 'SatisfiendAp
     ->withMiddleware(DefaultStack::get())
     ->add();
 
-// Webhook endpoint: authenticated by HMAC signature, not by Horde session,
+// Webhook endpoint: Authenticated by HMAC signature, not by Horde session,
 // so it does not need the legacy HordeCore shim or the auth middlewares.
 // SatisfiendBootstrap installs just the satisfiend-specific DI bindings
 // (EndpointLookupInterface + PersistEventListener subscription) that the
