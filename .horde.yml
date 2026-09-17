@@ -31,7 +31,7 @@ dependencies:
       horde/db: ^3
       horde/eventdispatcher: ^1
       horde/exception: ^3
-      horde/githubapiclient: '*'
+      horde/githubapiclient: ^1
       horde/http: ^3
       horde/injector: ^3
       horde/rdo: ^3
