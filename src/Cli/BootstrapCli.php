@@ -24,6 +24,10 @@ use Horde\Injector\Injector;
 use Horde\Injector\TopLevel;
 use Horde\Satisfiend\Bootstrap;
 use Horde\Satisfiend\Cli;
+use Horde\Satisfiend\GithubIssueRepository;
+use Horde\Satisfiend\GithubPullRequestRepository;
+use Horde\Satisfiend\GithubReleaseRepository;
+use Horde\Satisfiend\GithubRepositoryRepository;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\RequestFactoryInterface;
@@ -93,6 +97,10 @@ final class BootstrapCli
             httpClient: $injector->getInstance(ClientInterface::class),
             requestFactory: $injector->getInstance(RequestFactoryInterface::class),
             streamFactory: $injector->getInstance(StreamFactoryInterface::class),
+            releaseRepository: $injector->getInstance(GithubReleaseRepository::class),
+            issueRepository: $injector->getInstance(GithubIssueRepository::class),
+            pullRequestRepository: $injector->getInstance(GithubPullRequestRepository::class),
+            repositoryRepository: $injector->getInstance(GithubRepositoryRepository::class),
         );
     }
 

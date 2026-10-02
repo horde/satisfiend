@@ -14,6 +14,8 @@ declare(strict_types=1);
 namespace Horde\Satisfiend;
 
 use Horde\Db\Adapter;
+use Horde\GithubApiClient\GithubApiClient;
+use Horde\GithubApiClient\GithubApiConfig;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\RequestFactoryInterface;
@@ -29,9 +31,16 @@ use InvalidArgumentException;
  * whole Horde registry from inside a test.
  *
  * Subcommands:
- *   debug inject   In-process synthesised event (bypasses HTTP + HMAC).
- *   debug send     Signed HTTP POST to a local webhook endpoint.
- *   help           Print usage.
+ *   debug inject     In-process synthesised event (bypasses HTTP + HMAC).
+ *   debug send       Signed HTTP POST to a local webhook endpoint.
+ *   convert-events   Backfill satisfiend_gh_issues, satisfiend_gh_pull_requests,
+ *                    satisfiend_gh_repositories and satisfiend_github_releases
+ *                    from event history.
+ *   poll-repositories
+ *                    Poll the GitHub REST API for every publicly visible
+ *                    repository in an organization and snapshot the new
+ *                    or changed ones into satisfiend_gh_repositories.
+ *   help             Print usage.
  */
 class Cli
 {
@@ -47,6 +56,10 @@ class Cli
         private readonly ClientInterface $httpClient,
         private readonly RequestFactoryInterface $requestFactory,
         private readonly StreamFactoryInterface $streamFactory,
+        private readonly GithubReleaseRepository $releaseRepository,
+        private readonly GithubIssueRepository $issueRepository,
+        private readonly GithubPullRequestRepository $pullRequestRepository,
+        private readonly GithubRepositoryRepository $repositoryRepository,
     ) {}
 
     /**
@@ -60,6 +73,32 @@ class Cli
             $this->printUsage();
 
             return 0;
+        }
+
+        if ($args[0] === 'convert-events') {
+            try {
+                return $this->cmdConvertEvents($this->parseOptions(array_slice($args, 1)));
+            } catch (Throwable $e) {
+                $this->err('Error: ' . $e->getMessage());
+
+                return 1;
+            }
+        }
+
+        if ($args[0] === 'poll-repositories') {
+            $org = $args[1] ?? '';
+            if ($org === '') {
+                $this->err('Usage: satisfiend-cli poll-repositories ORG [--token=TOKEN]');
+
+                return 2;
+            }
+            try {
+                return $this->cmdPollRepositories($org, $this->parseOptions(array_slice($args, 2)));
+            } catch (Throwable $e) {
+                $this->err('Error: ' . $e->getMessage());
+
+                return 1;
+            }
         }
 
         if ($args[0] !== 'debug') {
@@ -168,6 +207,95 @@ class Cli
         return $response->getStatusCode() >= 200 && $response->getStatusCode() < 300 ? 0 : 1;
     }
 
+    /**
+     * Pages through `satisfiend_events` oldest-to-newest (keyset
+     * pagination on `event_id` and runs every converter over each row. Each converter
+     * independently checks for its own top-level payload key
+     * (`release`, `issue`, `pull_request`, `repository`) and inserts a
+     * new snapshot only if the entity is new or has changed since the
+     * last recorded observation.
+     *
+     * @param array<string, string> $opts
+     */
+    private function cmdConvertEvents(array $opts): int
+    {
+        $batchSize = isset($opts['batch-size']) ? max(1, (int) $opts['batch-size']) : 500;
+        $converters = [
+            'release' => new ReleaseEventConverter($this->releaseRepository),
+            'issue' => new IssueEventConverter($this->issueRepository),
+            'pull request' => new PullRequestEventConverter($this->pullRequestRepository),
+            'repository' => new RepositoryEventConverter($this->repositoryRepository),
+        ];
+
+        $lastId = 0;
+        $scanned = 0;
+        $inserted = array_fill_keys(array_keys($converters), 0);
+
+        while (true) {
+            $rows = $this->db->selectAll(
+                'SELECT event_id, event_type, action, payload, received_at'
+                    . ' FROM satisfiend_events WHERE event_id > ? ORDER BY event_id ASC LIMIT ' . $batchSize,
+                [$lastId]
+            );
+            if ($rows === []) {
+                break;
+            }
+
+            foreach ($rows as $row) {
+                $scanned++;
+                $lastId = (int) $row['event_id'];
+                foreach ($converters as $label => $converter) {
+                    if ($converter->convert($row)) {
+                        $inserted[$label]++;
+                    }
+                }
+            }
+        }
+
+        $this->out(sprintf(
+            'Scanned %d event(s), inserted %d release, %d issue, %d pull request, %d repository snapshot(s).',
+            $scanned,
+            $inserted['release'],
+            $inserted['issue'],
+            $inserted['pull request'],
+            $inserted['repository'],
+        ));
+
+        return 0;
+    }
+
+    /**
+     * Polls the GitHub REST API for every publicly visible repository
+     * in an organization via {@see OrganizationRepositoryPoller} and
+     * records a snapshot for each repository that is new or has changed since
+     * the last recorded observation
+     *
+     * This should gracefully interact with repositories unwrapped from webhook events.
+     *
+     * @param array<string, string> $opts
+     */
+    private function cmdPollRepositories(string $org, array $opts): int
+    {
+        // TODO: Let a factory handle this and potentially support Github Apps authentication with short-lived tokens
+        $config = new GithubApiConfig(accessToken: $opts['token'] ?? '');
+        $client = new GithubApiClient($this->httpClient, $this->requestFactory, $config, $this->streamFactory);
+        $poller = new OrganizationRepositoryPoller(
+            $client,
+            new RepositoryEventConverter($this->repositoryRepository),
+        );
+
+        $result = $poller->poll($org);
+
+        $this->out(sprintf(
+            'Scanned %d repository(ies) in %s, inserted %d snapshot(s).',
+            $result['scanned'],
+            $org,
+            $result['inserted'],
+        ));
+
+        return 0;
+    }
+
     private function unknownDebugSubcommand(string $sub): int
     {
         if ($sub === '') {
@@ -181,9 +309,10 @@ class Cli
     }
 
     /**
-     * Very small `--key=value` and `--key value` parser. No positional
-     * args; every option is long-form. Kept intentionally minimal so
-     * tests can trust the exact behaviour without pulling in argv/getopt.
+     * `--key=value` and `--key value` parser. No positional
+     * args; every option is long-form.
+     *
+     * @TODO: Migrate to horde/argv
      *
      * @param list<string> $args
      * @return array<string, string>
@@ -263,6 +392,19 @@ class Cli
                             receive path just as github.com would. Rows land with
                             debug=false.
 
+              convert-events
+                            Backfill the GitHub snapshot tables from event history:
+
+                            If the event payload has a top-level "release",
+                            "issue", "pull_request" or "repository" key, records a
+                            snapshot in the matching item repository.
+
+              poll-repositories ORG
+                            Poll the GitHub REST API for every publicly visible
+                            repository in organization ORG and record a
+                            satisfiend_gh_repositories snapshot for each one that
+                            is new or has changed since the last observation.
+
               help          This help text.
 
             Common options (both `inject` and `send`):
@@ -278,6 +420,24 @@ class Cli
                                    (default: http://localhost/satisfiend/webhook/SLUG)
               --secret=SECRET      Override the endpoint's HMAC secret
                                    (default: read from satisfiend_endpoints)
+
+            convert-events:
+              Pages through satisfiend_events oldest-to-newest; for every event
+              whose payload has a top-level "release", "issue", "pull_request"
+              or "repository" key, inserts a snapshot into the matching table
+              (skipped if the entity is unchanged since its last recorded
+              snapshot).
+              --batch-size=N       Rows fetched per page (default: 500)
+
+            poll-repositories ORG:
+              Calls GET /orgs/ORG/repos (paginated) and records a
+              snapshot for every repository that is
+              new or has changed (by node_id + updated_at) since the last
+              recorded observation. Unauthenticated by default, which only
+              sees ORG's publicly visible repositories.
+              --token=TOKEN        GitHub access token (raises the rate limit;
+                                   still only sees public repos unless it has
+                                   org membership/read scope)
             TXT);
     }
 }
