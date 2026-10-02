@@ -2,6 +2,9 @@ vendor/
 composer.lock
 .phpunit.cache/
 
+config/horde.local.php
+config/*.local.php
+
 # Added by horde-components QC --fix-qc-issues
 # Build artifacts directory
 /build/
